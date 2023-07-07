@@ -1,0 +1,73 @@
+import pygame
+
+# Set up the Pygame window
+pygame.init()
+window_width = 800
+window_height = 500
+window = pygame.display.set_mode((window_width, window_height))
+pygame.display.set_caption("Charging and Discharging Capacitor")
+
+# Set up the simulation variables
+Vs = 5.0  # source voltage
+R = 2000.0  # resistance
+C = 0.001  # capacitance
+Q = 0.0  # initial charge on the capacitor
+dt = 0.01  # time step
+running = True
+
+# Set up the rectangle for visualizing the voltage across the capacitor
+rect_width = 100
+rect_height = 0
+rect_color = (0, 255, 0)
+rect_x = window_width // 2 - rect_width // 2
+rect_y = window_height - rect_height - 50
+rect = pygame.Rect(rect_x, rect_y, rect_width, rect_height)
+
+# Set up the discharging variables
+discharging = False
+discharge_rate = Vs / 100.0
+
+# Main simulation loop
+while running:
+    # Handle user input
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_c:
+                Vs = 5.0
+                discharging = False
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_c:
+                discharging = True
+
+    # Calculate the current and new charge
+    if Vs > 0:
+        I = (Vs - Q / C) / R
+    else:
+        I = -Q / (R*C)
+    Q = Q + I * dt
+    Q = max(0, min(Q, C*Vs))
+
+    # Update the rectangle for visualizing the voltage across the capacitor
+    rect_height = Q / C * 50  # multiply by 50 for scaling
+    rect_y = window_height - rect_height - 50
+    rect = pygame.Rect(rect_x, rect_y, rect_width, rect_height)
+
+    # Gradually reduce the source voltage if the capacitor is discharging
+    if discharging and Vs > 0:
+        Vs = max(0, Vs - discharge_rate)
+
+    # Draw the rectangle and update the Pygame window
+    window.fill((0, 0, 0))
+    pygame.draw.rect(window, rect_color, rect)
+    font = pygame.font.Font(None, 36)
+    text = font.render(f"Voltage: {Q/C:.2f} V", True, (255, 255, 255))
+    window.blit(text, (10, 10))
+    pygame.display.update()
+
+    # Set the simulation clock tick rate
+    pygame.time.Clock().tick(100)
+
+# Quit Pygame when the simulation loop ends
+pygame.quit()
