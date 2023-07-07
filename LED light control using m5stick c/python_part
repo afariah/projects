@@ -1,0 +1,94 @@
+import paho.mqtt.client as mqtt 
+import time 
+import tkinter as tk 
+
+client_id = "Fariah" 
+broker = "info8000.ga" 
+topic_status = "light_status" 
+topic_control_status = "fa82172/light_control_status" 
+topic_control_color ="fa82172/light_control_color" 
+
+client = mqtt.Client(client_id) 
+client.username_pw_set("giiuser", "giipassword") // use your acc info, this is an example 
+client.connect(broker) 
+client.subscribe(topic_status) 
+
+root = tk.Tk()
+root.title(" Light Controller")
+root.geometry("300x500")
+
+def onMessageFromLight(client_obj, userdata, message: mqtt.MQTTMessage):
+    if message.topic == topic_status:
+        on = int(message.payload[0])
+        r = int(message.payload[1])
+        g = int(message.payload[2])
+        b = int(message.payload[3])
+        if (0 <= r <= 255) and (0 <= g <= 255) and (0 <= b <= 255):
+            box.config(bg="#%02x" % (r, g, b)) 
+        if on:
+            light_status_var.set("ON")
+        else:
+            light_status_var.set("OFF")
+            light_time_var.set(time.ctime()) 
+
+client.on_message = onMessageFromLight 
+       
+def toggleLight():
+    light_status = 0 if light_status_var.get() == "ON" else 1 
+    client.publish(topic_control_status, bytearray([light_status])) 
+
+def setColor():
+    red = int(red_var.get())
+    green = int(green_var.get()) 
+    blue = int(blue_var.get())
+    client.publish(topic_control_color, bytearray([red, green, blue])) 
+
+
+def pumpMQTT():
+    client.loop(0)
+    root.after(10, pumpMQTT) #repeat this 
+
+lbl = tk.Label(root, text="Light Status") 
+lbl.grid(row=0, column=1) 
+lbl_1 = tk.Label(root, text="Light Control") 
+lbl_1.grid(row=5, column=1) 
+btn_1 = tk.Button(root, text="Toggle Light", command=toggleLight) 
+btn_2=tk.Button(root,text="Set Color",command=setColor) 
+btn_2.grid(row=10,column=1) 
+
+light_status_var = tk.StringVar() 
+light_status_var.set("Unknown") 
+light_status_label = tk.Label(root, textvariable=light_status_var) 
+light_status_label.grid(row=1, column=1) 
+light_time_var = tk.StringVar() 
+light_time_label = tk.Label(root, textvariable=light_time_var)
+light_time_label.grid(row=2, column=1) 
+
+
+box = tk.Label(root, bg="black", width=30, height=5) 
+box.grid(row=3, columnspan=3) 
+
+
+red_label = tk.Label(root, text='R:') 
+red_label.grid(row=7, column=0) 
+red_var = tk.StringVar() 
+red_var.set("0") 
+red_entry = tk.Entry(root, textvariable=red_var) 
+red_entry.grid(row=7, column=1) 
+green_label = tk.Label(root, text='G:') 
+green_label.grid(row=8, column=0) 
+green_var = tk.StringVar() 
+green_var.set("0") 
+green_entry = tk.Entry(root, textvariable=green_var)
+green_entry.grid(row=8,column=1) 
+blue_label = tk.Label(root, text = 'B:') 
+blue_label.grid(row=9, column=0) 
+blue_var = tk.StringVar() 
+blue_var.set("0") 
+blue_entry= tk.Entry(root,textvariable=blue_var) 
+blue_entry.grid(row=9,column=1) 
+
+
+
+pumpMQTT() 
+root.mainloop()
